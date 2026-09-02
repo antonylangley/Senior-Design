@@ -123,6 +123,7 @@ cd backend
 .venv/bin/python -m pytest
 cd ../frontend
 npm run lint
+npm test
 npm run build
 ```
 
@@ -153,8 +154,30 @@ npm run build
 - A brick is assigned using the center of its oriented rectangle; the grid never splits detection.
 - `angle_degrees` is the brick rectangle's long-axis yaw, clockwise in image coordinates and
   normalized to `0 <= angle < 180` because a rectangular axis is directionless.
+- Dimension inference scores the supported 2x2, 2x3, and 2x4 sizes using the oriented-box aspect
+  ratio, stud count, and stud lattice. `dimension_confidence` and `dimension_source` expose how
+  strongly the signals agreed.
 - Pixel measurements are produced locally with OpenCV. The LEGO endpoint does not call OpenAI.
 - Enable Debug in the UI to inspect the raw image, segmentation mask, components/pose, and studs.
+
+The request may optionally include four workspace corners for a planar perspective warp:
+
+```json
+{
+  "rectification": {
+    "workspace_corners": [
+      {"x": 100, "y": 80}, {"x": 1180, "y": 100},
+      {"x": 1160, "y": 880}, {"x": 120, "y": 900}
+    ],
+    "output_width": 1080,
+    "output_height": 800
+  }
+}
+```
+
+Without this object, preprocessing is unchanged. The rectification module reserves configuration
+boundaries for future camera intrinsics, distortion coefficients, homography persistence, and
+pixels-to-millimeters calibration without pretending those values are calibrated today.
 
 ## Current Limitations
 

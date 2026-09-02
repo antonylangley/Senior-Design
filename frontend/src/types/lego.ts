@@ -16,17 +16,22 @@ export interface LegoBrick {
   grid_position: GridPosition
   bounding_polygon: [number, number][]
   confidence: number
+  dimension_confidence: number
+  dimension_source: string
   representative_color: RepresentativeColor
 }
 
 export interface LegoDetectResponse {
   image: { width: number; height: number }
+  processed_image_data: string
   grid: { rows: number; columns: number }
   bricks: LegoBrick[]
   debug: {
+    rectified_view: string | null
     segmentation_mask: string
     components: string
     studs: string
   } | null
+  rectification: { active: boolean; method: string }
   warning: string | null
 }

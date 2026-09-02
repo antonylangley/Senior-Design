@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
-import { Bug, ImageUp, LoaderCircle } from 'lucide-react'
+import { AlertTriangle, Bug, Check, Clipboard, Download, ImageUp, LoaderCircle } from 'lucide-react'
 import { api } from '../services/api'
 import type { LegoDetectResponse } from '../types/lego'
 import { LegoOverlay } from './LegoOverlay'
+import { formatLegoSummary, serializeLegoResult } from '../utils/legoExport'
 
 const readImage = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const reader = new FileReader()
@@ -21,6 +22,29 @@ export function LegoBrickDetection() {
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exportFeedback, setExportFeedback] = useState<{ message: string; success: boolean } | null>(null)
+
+  const copyText = async (text: string, label: string) => {
+    setExportFeedback(null)
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard access is unavailable.')
+      await navigator.clipboard.writeText(text)
+      setExportFeedback({ message: `${label} copied to clipboard.`, success: true })
+    } catch {
+      setExportFeedback({ message: `Failed to copy ${label.toLowerCase()}.`, success: false })
+    }
+  }
+
+  const downloadJson = () => {
+    if (!result) return
+    const url = URL.createObjectURL(new Blob([serializeLegoResult(result)], { type: 'application/json' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `lego-detection-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+    setExportFeedback({ message: 'JSON download started.', success: true })
+  }
 
   const processFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -84,11 +108,18 @@ export function LegoBrickDetection() {
         {loading ? <p className="loading-line"><LoaderCircle className="spinner" size={20} aria-hidden="true" /> Detecting bricks…</p> : null}
         {error ? <p className="error-text">{error}</p> : null}
         {result?.warning ? <p className="warning-text">{result.warning}</p> : null}
-        {imageData && result ? <LegoOverlay imageData={imageData} result={result} /> : null}
+        {result ? <LegoOverlay imageData={result.processed_image_data} result={result} /> : null}
+
+        {result ? (
+          <p className={`rectification-status${result.rectification.active ? ' active' : ''}`}>
+            Rectification: {result.rectification.active ? `Active (${result.rectification.method})` : 'Inactive'}
+          </p>
+        ) : null}
 
         {debug && result?.debug ? (
           <section className="debug-grid" aria-label="Debug images">
             <figure><img src={imageData ?? ''} alt="Raw uploaded frame" /><figcaption>Raw image</figcaption></figure>
+            {result.debug.rectified_view ? <figure><img src={result.debug.rectified_view} alt="Rectified workspace view" /><figcaption>Rectified view</figcaption></figure> : null}
             <figure><img src={result.debug.segmentation_mask} alt="Binary segmentation mask" /><figcaption>Segmentation mask</figcaption></figure>
             <figure><img src={result.debug.components} alt="Detected components and oriented rectangles" /><figcaption>Components and pose</figcaption></figure>
             <figure><img src={result.debug.studs} alt="Detected stud centers" /><figcaption>Detected studs</figcaption></figure>
@@ -100,6 +131,17 @@ export function LegoBrickDetection() {
         <div className="section-heading"><h2>Results</h2></div>
         <p className="detected-total">Detected bricks: <strong>{result?.bricks.length ?? 0}</strong></p>
         <p className="coordinate-note">Grid coordinates below are zero-based.</p>
+        <div className="export-actions">
+          <button type="button" className="secondary-button" disabled={!result} onClick={() => { if (result) void copyText(serializeLegoResult(result), 'JSON') }}><Clipboard size={16} aria-hidden="true" />Copy JSON</button>
+          <button type="button" className="secondary-button" disabled={!result} onClick={() => { if (result) void copyText(formatLegoSummary(result), 'Summary') }}><Clipboard size={16} aria-hidden="true" />Copy Summary</button>
+          <button type="button" className="secondary-button" disabled={!result} onClick={downloadJson}><Download size={16} aria-hidden="true" />Download JSON</button>
+        </div>
+        {exportFeedback ? (
+          <p className={`export-feedback${exportFeedback.success ? '' : ' failed'}`} role="status">
+            {exportFeedback.success ? <Check size={15} aria-hidden="true" /> : <AlertTriangle size={15} aria-hidden="true" />}
+            {exportFeedback.message}
+          </p>
+        ) : null}
         {result?.bricks.map((brick) => (
           <article className="brick-result" key={brick.id}>
             <h3>Brick #{brick.id}</h3>
@@ -112,6 +154,7 @@ export function LegoBrickDetection() {
               <div><dt>Yaw</dt><dd>{brick.angle_degrees.toFixed(1)}°</dd></div>
               <div><dt>Grid</dt><dd>[{brick.grid_position.row},{brick.grid_position.column}]</dd></div>
               <div><dt>Confidence</dt><dd>{Math.round(brick.confidence * 100)}%</dd></div>
+              <div><dt>Size confidence</dt><dd>{Math.round(brick.dimension_confidence * 100)}%</dd></div>
             </dl>
           </article>
         ))}

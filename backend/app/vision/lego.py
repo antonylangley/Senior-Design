@@ -19,6 +19,17 @@ class SegmentedBrick:
     mask: np.ndarray
 
 
+@dataclass(frozen=True)
+class DimensionInference:
+    dimensions: tuple[int, int] | None
+    confidence: float
+    source: str
+    disagreement: bool = False
+
+
+SUPPORTED_DIMENSIONS = ((2, 2), (2, 3), (2, 4))
+
+
 def normalize_angle(angle_degrees: float) -> float:
     """Normalize a directionless rectangular pose to [0, 180)."""
     return float(angle_degrees % 180.0)
@@ -123,20 +134,57 @@ def _cluster_axis(values: np.ndarray, tolerance: float) -> list[float]:
 
 def infer_brick_dimensions(
     stud_centers: list[tuple[float, float]], pose: BrickPose
-) -> tuple[int, int] | None:
-    if not stud_centers:
-        return None
-    points = np.asarray(stud_centers, dtype=np.float32) - np.asarray(pose.center, dtype=np.float32)
-    radians = np.deg2rad(pose.angle_degrees)
-    long_axis = np.array([np.cos(radians), np.sin(radians)], dtype=np.float32)
-    short_axis = np.array([-np.sin(radians), np.cos(radians)], dtype=np.float32)
-    local_x, local_y = points @ long_axis, points @ short_axis
-    tolerance = max(5.0, min(pose.size) * 0.16)
-    columns = len(_cluster_axis(local_x, tolerance))
-    rows = len(_cluster_axis(local_y, tolerance))
-    if rows * columns != len(stud_centers) or rows > 8 or columns > 16:
-        return None
-    return min(rows, columns), max(rows, columns)
+) -> DimensionInference:
+    """Score supported sizes using aspect ratio, stud count, and lattice geometry."""
+    aspect_ratio = max(pose.size) / max(min(pose.size), 1.0)
+    lattice: tuple[int, int] | None = None
+    lattice_quality = 0.0
+    if stud_centers:
+        points = np.asarray(stud_centers, dtype=np.float32) - np.asarray(pose.center, dtype=np.float32)
+        radians = np.deg2rad(pose.angle_degrees)
+        long_axis = np.array([np.cos(radians), np.sin(radians)], dtype=np.float32)
+        short_axis = np.array([-np.sin(radians), np.cos(radians)], dtype=np.float32)
+        local_x, local_y = points @ long_axis, points @ short_axis
+        tolerance = max(5.0, min(pose.size) * 0.16)
+        columns = len(_cluster_axis(local_x, tolerance))
+        rows = len(_cluster_axis(local_y, tolerance))
+        candidate = (min(rows, columns), max(rows, columns))
+        if candidate in SUPPORTED_DIMENSIONS:
+            lattice = candidate
+            lattice_quality = min(1.0, len(stud_centers) / (candidate[0] * candidate[1]))
+
+    scores: dict[tuple[int, int], float] = {}
+    for dimensions in SUPPORTED_DIMENSIONS:
+        expected_ratio = dimensions[1] / dimensions[0]
+        aspect_score = max(0.0, 1.0 - abs(aspect_ratio - expected_ratio) / 0.55)
+        expected_studs = dimensions[0] * dimensions[1]
+        count_score = max(0.0, 1.0 - abs(len(stud_centers) - expected_studs) / expected_studs)
+        if lattice is None:
+            score = (0.80 * aspect_score) + (0.20 * count_score)
+        else:
+            lattice_score = lattice_quality if dimensions == lattice else 0.0
+            score = (0.40 * aspect_score) + (0.15 * count_score) + (0.45 * lattice_score)
+        scores[dimensions] = score
+
+    best_dimensions = max(scores, key=scores.get)
+    best_score = scores[best_dimensions]
+    aspect_choice = min(
+        SUPPORTED_DIMENSIONS,
+        key=lambda dimensions: abs(aspect_ratio - dimensions[1] / dimensions[0]),
+    )
+    disagreement = lattice is not None and lattice != aspect_choice
+    if disagreement:
+        best_score = max(0.0, best_score - 0.12)
+    if best_score < 0.42:
+        return DimensionInference(None, best_score, "unresolved", disagreement)
+
+    if lattice == best_dimensions and aspect_choice == best_dimensions:
+        source = "stud_lattice+aspect_ratio"
+    elif lattice == best_dimensions:
+        source = "stud_lattice"
+    else:
+        source = "aspect_ratio"
+    return DimensionInference(best_dimensions, min(best_score, 0.98), source, disagreement)
 
 
 def classify_brick_color(frame: np.ndarray, mask: np.ndarray) -> tuple[str, list[float], list[float]]:
