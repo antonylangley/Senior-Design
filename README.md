@@ -16,6 +16,8 @@ robot control.
 - `backend/`: FastAPI service with OpenCV image processing and OpenAI vision recognition.
 - `backend/app/vision/`: reusable paper detection, corner ordering, perspective warp, and scan enhancement.
 - `backend/app/vision/lego.py`: deterministic segmentation, pose, stud-layout, grid, and color logic.
+- `backend/app/vision/lego_model.py`: nominal LEGO geometry, robust canonical-lattice fitting,
+  ideal physical boundary generation, and scene-scale consistency analysis.
 - `backend/app/ai/`: OpenAI Responses API integration.
 - `backend/app/models/`: domain models, including `RobotIntent`.
 - `backend/app/services/`: scan processing and typed intent normalization.
@@ -159,6 +161,28 @@ npm run build
   strongly the signals agreed.
 - Pixel measurements are produced locally with OpenCV. The LEGO endpoint does not call OpenAI.
 - Enable Debug in the UI to inspect the raw image, segmentation mask, components/pose, and studs.
+
+### Canonical LEGO pose refinement
+
+The pose refinement uses the supplied nominal constants directly: 8.0 mm stud pitch, approximately
+4.8 mm stud diameter, 9.6 mm body height, and footprints of 15.8x15.8 mm (2x2), 23.8x15.8 mm
+(2x3), and 31.8x15.8 mm (2x4). Stud lattices are centered at LEGO-local `(0, 0)` with the long
+axis along local `+X`.
+
+Segmentation and `minAreaRect` still produce a rough candidate pose. When enough detected studs
+robustly match the selected canonical lattice, a similarity transform estimates image translation,
+yaw, and pixels per nominal millimeter. The canonical origin becomes the final center and the
+nominal footprint transformed into image space becomes the final green polygon. Missing studs are
+allowed, extra candidates are rejected by one-to-one reprojection matching, and least-squares
+refinement reports an actual RMS reprojection error. Weak fits explicitly retain the contour center,
+yaw, and rectangle as `contour_fallback`.
+
+Reliable per-brick scales contribute to a median/MAD scene consistency estimate. A second pass uses
+that scale only when multiple fits agree sufficiently (with slightly different requirements for a
+rectified image). `scene_scale_px_per_mm` is an image-space model-fit diagnostic—not calibrated
+workcell scale and not a robot/world transformation. The nominal constants supplied to this
+prototype must later be validated against the actual physical bricks, camera, and workcell during
+robot calibration.
 
 The request may optionally include four workspace corners for a planar perspective warp:
 

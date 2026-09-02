@@ -41,6 +41,24 @@ class NumericColor(BaseModel):
     lab: list[float]
 
 
+class RawPose(BaseModel):
+    center_px: Point
+    angle_degrees: float
+    bounding_polygon: list[list[float]]
+
+
+class ModelFitDiagnostics(BaseModel):
+    matched_studs: int
+    expected_studs: int
+    detected_candidates: int
+    rejected_studs: int
+    reprojection_error_px: float
+    scale_px_per_mm: float
+    predicted_stud_centers_px: list[list[float]]
+    matched_stud_centers_px: list[list[float]]
+    rejected_stud_centers_px: list[list[float]]
+
+
 class LegoBrick(BaseModel):
     id: int
     color: str
@@ -50,6 +68,11 @@ class LegoBrick(BaseModel):
     center_px: Point
     center_normalized: Point
     angle_degrees: float
+    rotational_symmetry_degrees: int
+    pose_source: str
+    pose_confidence: float = Field(ge=0, le=1)
+    model_fit: ModelFitDiagnostics | None = None
+    raw_pose: RawPose
     grid_position: GridPosition
     bounding_polygon: list[list[float]]
     confidence: float = Field(ge=0, le=1)
@@ -63,11 +86,22 @@ class LegoDebugImages(BaseModel):
     segmentation_mask: str
     components: str
     studs: str
+    pose_refinement: str
 
 
 class RectificationStatus(BaseModel):
     active: bool
     method: str
+
+
+class SceneScaleDiagnostics(BaseModel):
+    scale_px_per_mm: float | None = None
+    confidence: float = Field(ge=0, le=1)
+    relative_variation: float | None = None
+    sample_count: int
+    candidate_count: int
+    outlier_count: int
+    trustworthy: bool
 
 
 class LegoDetectResponse(BaseModel):
@@ -76,5 +110,6 @@ class LegoDetectResponse(BaseModel):
     grid: GridDefinition
     bricks: list[LegoBrick]
     rectification: RectificationStatus
+    scene_scale: SceneScaleDiagnostics
     debug: LegoDebugImages | None = None
     warning: str | None = None

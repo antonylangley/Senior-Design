@@ -17,6 +17,8 @@ export function formatLegoSummary(result: LegoDetectResponse): string {
       `Yaw: ${brick.angle_degrees.toFixed(1)}°`,
       `Grid: [${brick.grid_position.row},${brick.grid_position.column}]`,
       `Confidence: ${Math.round(brick.confidence * 100)}%`,
+      `Pose: ${brick.pose_source === 'lego_model_fit' ? 'Model fit' : 'Contour fallback'}`,
+      `Pose confidence: ${Math.round(brick.pose_confidence * 100)}%`,
     )
   }
   return lines.join('\n')

@@ -121,8 +121,9 @@ export function LegoBrickDetection() {
             <figure><img src={imageData ?? ''} alt="Raw uploaded frame" /><figcaption>Raw image</figcaption></figure>
             {result.debug.rectified_view ? <figure><img src={result.debug.rectified_view} alt="Rectified workspace view" /><figcaption>Rectified view</figcaption></figure> : null}
             <figure><img src={result.debug.segmentation_mask} alt="Binary segmentation mask" /><figcaption>Segmentation mask</figcaption></figure>
-            <figure><img src={result.debug.components} alt="Detected components and oriented rectangles" /><figcaption>Components and pose</figcaption></figure>
+            <figure><img src={result.debug.components} alt="Raw and final oriented boundaries" /><figcaption>Raw box (cyan) and final boundary (green)</figcaption></figure>
             <figure><img src={result.debug.studs} alt="Detected stud centers" /><figcaption>Detected studs</figcaption></figure>
+            <figure><img src={result.debug.pose_refinement} alt="Canonical LEGO pose refinement diagnostics" /><figcaption>Pose fit: predicted yellow, matched green, rejected red</figcaption></figure>
           </section>
         ) : null}
       </section>
@@ -155,6 +156,8 @@ export function LegoBrickDetection() {
               <div><dt>Grid</dt><dd>[{brick.grid_position.row},{brick.grid_position.column}]</dd></div>
               <div><dt>Confidence</dt><dd>{Math.round(brick.confidence * 100)}%</dd></div>
               <div><dt>Size confidence</dt><dd>{Math.round(brick.dimension_confidence * 100)}%</dd></div>
+              <div><dt>Pose</dt><dd>{brick.pose_source === 'lego_model_fit' ? 'Model fit' : 'Contour fallback'}</dd></div>
+              <div><dt>Pose confidence</dt><dd>{Math.round(brick.pose_confidence * 100)}%</dd></div>
             </dl>
           </article>
         ))}
