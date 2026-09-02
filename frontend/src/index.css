@@ -95,13 +95,50 @@ p {
 
 .mode-tabs {
   display: inline-grid;
-  grid-template-columns: 1fr 1fr;
-  min-width: 224px;
+  grid-template-columns: repeat(3, 1fr);
+  min-width: 350px;
   padding: 4px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel-muted);
 }
+
+.lego-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); gap: 18px; align-items: start; }
+.lego-main-panel, .lego-results-panel { padding: 18px; }
+.lego-results-panel { position: sticky; top: 18px; max-height: calc(100svh - 36px); overflow: auto; }
+.lego-intro { margin-bottom: 14px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.upload-dropzone { width: 100%; min-height: 145px; display: grid; place-items: center; gap: 7px; padding: 20px; border: 2px dashed var(--border); border-radius: 8px; color: var(--muted); background: var(--panel-muted); cursor: pointer; text-align: center; }
+.upload-dropzone strong { color: var(--text); }
+.upload-dropzone span { font-size: .85rem; }
+.upload-dropzone.dragging, .upload-dropzone:hover { border-color: var(--primary); background: var(--primary-soft); }
+.lego-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 14px 0; }
+.lego-controls label { display: grid; gap: 5px; color: var(--muted); font-size: .85rem; font-weight: 700; }
+.lego-controls input[type="number"] { width: 90px; min-height: 40px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; }
+.lego-controls .toggle-control { display: flex; flex-direction: row; align-items: center; min-height: 40px; }
+.loading-line { display: flex; align-items: center; gap: 8px; margin: 12px 0; color: var(--primary); font-weight: 700; }
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.lego-image-stage { position: relative; margin-top: 16px; overflow: hidden; border: 1px solid var(--border); border-radius: 6px; background: #111820; }
+.lego-image-stage img { display: block; width: 100%; height: auto; }
+.lego-image-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.grid-line { stroke: rgba(255,255,255,.55); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.brick-polygon { fill: rgba(37,208,126,.1); stroke: #25d07e; stroke-width: 3; vector-effect: non-scaling-stroke; }
+.brick-center { fill: #ff3b30; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.stud-marker { fill: none; stroke: #ff4fd8; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.brick-label { fill: white; stroke: rgba(0,0,0,.8); stroke-width: 4px; paint-order: stroke; font-size: 15px; font-weight: 750; }
+.detected-total { font-size: 1.05rem; }
+.coordinate-note { margin: 5px 0 14px; color: var(--muted); font-size: .82rem; }
+.brick-result { padding: 13px 0; border-top: 1px solid var(--border); }
+.brick-result h3 { margin-bottom: 8px; color: var(--primary-strong); }
+.brick-result dl { display: grid; gap: 5px; margin: 0; font-size: .9rem; }
+.brick-result dl div { display: flex; justify-content: space-between; gap: 12px; }
+.brick-result dt { color: var(--muted); }
+.brick-result dd { margin: 0; font-family: var(--mono); text-align: right; }
+.debug-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.debug-grid figure { margin: 0; }
+.debug-grid img { display: block; width: 100%; aspect-ratio: 4/3; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; background: #111820; }
+.debug-grid figcaption { margin-top: 5px; color: var(--muted); font-size: .84rem; font-weight: 700; }
 
 .mode-tabs button {
   display: inline-flex;
@@ -438,6 +475,9 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .lego-workspace { grid-template-columns: 1fr; }
+  .lego-results-panel { position: static; max-height: none; }
+
   .verified-panel {
     position: static;
   }
@@ -457,6 +497,9 @@ p {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .mode-tabs { min-width: 0; font-size: .86rem; }
+  .debug-grid { grid-template-columns: 1fr; }
 
   .scan-toolbar .primary-button,
   .status-pill {

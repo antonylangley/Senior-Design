@@ -6,11 +6,16 @@ This prototype implements the first stage of an autonomous robotic assembly pipe
 
 It does not generate LEGO models, plan assembly, control robots, or do motion planning.
 
+It also includes an independent **LEGO Brick Detection** prototype for measuring separated,
+studs-up bricks in controlled top-down images. This perception output is not yet connected to
+robot control.
+
 ## Architecture
 
 - `frontend/`: React, TypeScript, and Vite browser UI.
 - `backend/`: FastAPI service with OpenCV image processing and OpenAI vision recognition.
 - `backend/app/vision/`: reusable paper detection, corner ordering, perspective warp, and scan enhancement.
+- `backend/app/vision/lego.py`: deterministic segmentation, pose, stud-layout, grid, and color logic.
 - `backend/app/ai/`: OpenAI Responses API integration.
 - `backend/app/models/`: domain models, including `RobotIntent`.
 - `backend/app/services/`: scan processing and typed intent normalization.
@@ -114,8 +119,9 @@ backend/.venv/bin/python -m uvicorn app.main:app --app-dir backend --reload --ho
 To run checks:
 
 ```bash
-backend/.venv/bin/python -m pytest
-cd frontend
+cd backend
+.venv/bin/python -m pytest
+cd ../frontend
 npm run lint
 npm run build
 ```
@@ -138,6 +144,17 @@ npm run build
 - `POST /api/scan`: detect/warp/enhance the drawing and run recognition only for a scan action.
 - `POST /api/recognize`: recognize an already prepared image.
 - `POST /api/text-intent`: normalize typed input into the shared intent shape.
+- `POST /api/lego/detect`: detect LEGO instances and return pixel geometry, zero-based grid
+  positions, stud centers, dimensions when resolved, color, confidence, and optional debug images.
+
+### LEGO perception conventions
+
+- Grid rows and columns are configurable from 1 to 50 and API positions are zero-based.
+- A brick is assigned using the center of its oriented rectangle; the grid never splits detection.
+- `angle_degrees` is the brick rectangle's long-axis yaw, clockwise in image coordinates and
+  normalized to `0 <= angle < 180` because a rectangular axis is directionless.
+- Pixel measurements are produced locally with OpenCV. The LEGO endpoint does not call OpenAI.
+- Enable Debug in the UI to inspect the raw image, segmentation mask, components/pose, and studs.
 
 ## Current Limitations
 
@@ -146,6 +163,11 @@ npm run build
 - The full-frame fallback may include desk clutter, which can reduce recognition confidence.
 - The app stores no history and has no database.
 - Speech input, LEGO design generation, manufacturability checks, assembly graphs, task planning, and robot execution are intentionally out of scope.
+- LEGO V1 assumes separated, rectangular, standard-height, studs-up bricks on a simple contrasting
+  background under even light. Touching/overlapping or stacked bricks, severe shadows, upside-down
+  or sideways pieces, plates and unusual geometry, heavy perspective, and precise millimeter/world
+  localization are not reliable yet. Dimension inference is deliberately reported as unresolved
+  when the detected stud centers do not form a complete rectangular lattice.
 
 ## Later Pipeline Connection
 

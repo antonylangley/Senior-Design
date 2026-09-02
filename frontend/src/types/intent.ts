@@ -1,4 +1,4 @@
-export type InputMode = 'draw' | 'type'
+export type InputMode = 'draw' | 'type' | 'lego'
 
 export interface Point {
   x: number

@@ -12,6 +12,8 @@ from app.models.api import (
     TextIntentRequest,
     TextIntentResponse,
 )
+from app.models.lego import LegoDetectRequest, LegoDetectResponse
+from app.services.lego_service import LegoDetectionOptions, process_lego_image
 from app.services.scan_service import detect_paper_from_image_data, process_scan_image
 from app.services.text_intent import normalize_text_intent
 from app.vision.image_io import bytes_to_cv2, cv2_to_bytes, decode_image_data, resize_to_max_side
@@ -124,3 +126,18 @@ def text_intent(request: TextIntentRequest) -> TextIntentResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return TextIntentResponse(intent=intent)
+
+
+@app.post("/api/lego/detect", response_model=LegoDetectResponse)
+def detect_lego_bricks(request: LegoDetectRequest) -> LegoDetectResponse:
+    try:
+        return process_lego_image(
+            request.image_data,
+            LegoDetectionOptions(
+                grid_rows=request.grid_rows,
+                grid_columns=request.grid_columns,
+                debug=request.debug,
+            ),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

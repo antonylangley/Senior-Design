@@ -1,4 +1,4 @@
-import { Camera, Keyboard } from 'lucide-react'
+import { BrickWall, Camera, Keyboard } from 'lucide-react'
 import type { InputMode } from '../types/intent'
 
 interface ModeTabsProps {
@@ -28,6 +28,16 @@ export function ModeTabs({ activeMode, onModeChange }: ModeTabsProps) {
       >
         <Keyboard size={18} aria-hidden="true" />
         Type
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={activeMode === 'lego'}
+        className={activeMode === 'lego' ? 'active' : ''}
+        onClick={() => onModeChange('lego')}
+      >
+        <BrickWall size={18} aria-hidden="true" />
+        LEGO Bricks
       </button>
     </div>
   )

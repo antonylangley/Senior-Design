@@ -3,6 +3,7 @@ import type {
   ScanResponse,
   TextIntentResponse,
 } from '../types/intent'
+import type { LegoDetectResponse } from '../types/lego'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
 
@@ -49,5 +50,14 @@ export const api = {
 
   normalizeTextIntent(text: string): Promise<TextIntentResponse> {
     return postJson('/api/text-intent', { text })
+  },
+
+  detectLegoBricks(imageData: string, gridRows: number, gridColumns: number, debug: boolean): Promise<LegoDetectResponse> {
+    return postJson('/api/lego/detect', {
+      image_data: imageData,
+      grid_rows: gridRows,
+      grid_columns: gridColumns,
+      debug,
+    })
   },
 }

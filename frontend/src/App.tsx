@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CameraScanner } from './components/CameraScanner'
 import { ModeTabs } from './components/ModeTabs'
+import { LegoBrickDetection } from './components/LegoBrickDetection'
 import { TypeIntent } from './components/TypeIntent'
 import { VerifiedIntent } from './components/VerifiedIntent'
 import type { InputMode, RobotIntent } from './types/intent'
@@ -24,15 +25,12 @@ function App() {
         <ModeTabs activeMode={mode} onModeChange={handleModeChange} />
       </header>
 
-      <section className="workspace-grid" aria-label="Intent input workspace">
-        {mode === 'draw' ? (
-          <CameraScanner onVerifiedIntent={setVerifiedIntent} />
-        ) : (
-          <TypeIntent onVerifiedIntent={setVerifiedIntent} />
-        )}
-
-        <VerifiedIntent intent={verifiedIntent} />
-      </section>
+      {mode === 'lego' ? <LegoBrickDetection /> : (
+        <section className="workspace-grid" aria-label="Intent input workspace">
+          {mode === 'draw' ? <CameraScanner onVerifiedIntent={setVerifiedIntent} /> : <TypeIntent onVerifiedIntent={setVerifiedIntent} />}
+          <VerifiedIntent intent={verifiedIntent} />
+        </section>
+      )}
     </main>
   )
 }
